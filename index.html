@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مشكلتي - Mochkilti</title>
+<style>
+  :root{--red:#c1272d;--green:#006233;--gold:#ffd700}
+  body{font-family:'Segoe UI',Tahoma; background:#fdfdfd; margin:0; text-align:center}
+ .big-btn{background:var(--red); color:white; border:none; padding:30px; border-radius:50%; font-size:22px; width:220px; height:220px; box-shadow:0 8px 20px rgba(0,0,0,0.3)}
+ .vip-btn{background:linear-gradient(gold, #ffb700); color:#000; padding:12px 20px; border-radius:12px; font-weight:bold; border:none; margin:10px}
+  #adminPanel{display:none; background:#111; color:#fff; padding:20px; text-align:right; position:fixed; top:0; right:0; width:100%; height:100%; overflow:auto; z-index:9999}
+ .card{border:2px solid var(--green); border-radius:15px; margin:15px; padding:15px; background:white}
+</style>
+</head>
+<body>
+
+<h1 id="logo" onclick="secretTap()">🇲🇦 مشكلتي</h1>
+<p>عود لمشكلتك بصوتك</p>
+
+<button class="big-btn" id="recordBtn">🎙️ عود لمشكلتك<br>بصوتك</button>
+<p id="transcript"></p>
+
+<button class="vip-btn" onclick="activateVIP()">⭐ فعّل VIP - تحليل مفصل + نصيحة ذهبية</button>
+
+<div id="answer" class="card" style="display:none"></div>
+<button onclick="generateDoc()">📄 وجد ليا الوثيقة</button>
+
+<div style="margin-top:20px; font-size:12px; color:#666">هذا توجيه أولي وليس استشارة محاماة رسمية</div>
+
+<!-- لوحة التحكم السرية -->
+<div id="adminPanel">
+  <h2>لوحة تحكم تازناخت - خاص بيك بوحدك 🔒</h2>
+  <p>الزيارات: <span id="visits">0</span> | الربح: <span id="profit">0</span> درهم</p>
+  <p>5 دراهم / سؤال عادي - 20 درهم / VIP</p>
+  <hr>
+  <h3>كاع الأسئلة ديال الناس:</h3>
+  <div id="allQuestions"></div>
+  <h3>زيد قانون جديد:</h3>
+  <textarea id="newLaw" placeholder="مثال: المادة 228 - التعرض على الأرض..."></textarea><br>
+  <button onclick="addLaw()">زيد القانون</button>
+  <br><br><button onclick="closeAdmin()">خروج</button>
+</div>
+
+<script>
+// === قاعدة القوانين تقدر تزيد فيها ===
+const LAWS_DB = {
+  "ارض": "المادة 17 من ظهير التحفيظ العقاري + المادة 228 ق.م",
+  "كراء": "القانون 67.12 المتعلق بتنظيم العلاقة بين المكري والمكتري - المادة 8",
+  "اسرة": "مدونة الأسرة المادة 40 و 53",
+  "ادارة": "القانون 31.13 الحق في الحصول على المعلومة",
+  "نصب": "الفصل 540 من القانون الجنائي"
+};
+
+let tapCount=0, isVIP=localStorage.getItem('vip')==='1';
+let questions=JSON.parse(localStorage.getItem('qs')||'[]');
+let visits=parseInt(localStorage.getItem('visits')||'0')+1;
+localStorage.setItem('visits', visits);
+
+// عداد الربح
+function updateProfit(){
+  let profit = questions.length*5 + questions.filter(q=>q.vip).length*15;
+  document.getElementById('visits').innerText=visits;
+  document.getElementById('profit').innerText=profit;
+  document.getElementById('allQuestions').innerHTML = questions.map(q=>`
+    <div style="border-bottom:1px solid #333; padding:8px">
+    📅 ${q.date} - ${q.vip?'⭐VIP':'عادي'}<br>❓ ${q.text}<br>👤 ${q.city||'تازناخت'}
+    </div>`).join('');
+}
+
+// تسجيل صوتي
+const recBtn=document.getElementById('recordBtn');
+let recognition;
+if('webkitSpeechRecognition' in window){
+  recognition=new webkitSpeechRecognition();
+  recognition.lang='ar-MA'; recognition.continuous=false;
+  recognition.onresult=(e)=>{
+    let txt=e.results[0][0].transcript;
+    document.getElementById('transcript').innerText=txt;
+    analyze(txt);
+  }
+}
+recBtn.onclick=()=>recognition.start();
+
+function analyze(text){
+  // تصنيف تلقائي
+  let cat='ادارة'; if(text.includes('ارض')||text.includes('بلاد')) cat='ارض';
+  if(text.includes('كرا')) cat='كراء'; if(text.includes('مرتي')||text.includes('ولدي')) cat='اسرة';
+  if(text.includes('نصب')) cat='نصب';
+
+  // حفظ السؤال
+  questions.push({text:text, date:new Date().toLocaleString('ar-MA'), vip:isVIP, city:'تازناخت'});
+  localStorage.setItem('qs', JSON.stringify(questions));
+  updateProfit();
+
+  // الجواب ب 3 اجزاء
+  let law = LAWS_DB[cat] || "القانون العام";
+  let html = `<h3>التصنيف: ${cat}</h3>
+  <b>1. آش كيقول القانون:</b><br>${law} ${isVIP?'<br><span style="color:gold">⭐ نصيحة ذهبية VIP: دير مفوض قضائي قبل أي خطوة</span>':''}<br><br>
+  <b>2. خطوة بخطوة آش تدير:</b><br>1. جمع الوثائق 2. سير للمقاطعة 3. دفع الطلب<br><br>
+  <b>3. فين تمشي:</b><br>المقاطعة ديال تازناخت - عمالة ورزازات`;
+  document.getElementById('answer').innerHTML=html;
+  document.getElementById('answer').style.display='block';
+}
+
+function activateVIP(){ isVIP=true; localStorage.setItem('vip','1'); alert('تم تفعيل VIP ✅ دابا التحليل مفصل'); }
+function generateDoc(){ let t=document.getElementById('transcript').innerText; let doc=`إلى السيد العامل...\nالموضوع: بخصوص ${t}\n...`; let w=window.open(); w.document.write(`<pre>${doc}</pre>`); }
+function secretTap(){ tapCount++; if(tapCount>=5){ document.getElementById('adminPanel').style.display='block'; updateProfit(); tapCount=0; } setTimeout(()=>tapCount=0,3000); }
+function closeAdmin(){ document.getElementById('adminPanel').style.display='none'; }
+function addLaw(){ let l=document.getElementById('newLaw').value; if(l){ localStorage.setItem('customLaw_'+Date.now(), l); alert('تزاد القانون وغادي يخدم تلقائيا ✅'); } }
+// فتح مباشر بالرابط السري
+if(location.search.includes('tazenakht123')){ document.getElementById('adminPanel').style.display='block'; updateProfit(); }
+updateProfit();
+</script>
+</body>
+</html>
